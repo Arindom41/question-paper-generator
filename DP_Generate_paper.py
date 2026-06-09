@@ -397,97 +397,104 @@ def knapsack_select(questions, max_marks):
 
 def generate_paper(subject_id, total_marks, co_distribution, selected_question_ids=None):
     session = get_session()
-    final_questions = []
-    used_ids = set()
+    try:
+        final_questions = []
+        used_ids = set()
 
-    if selected_question_ids is None:
-        selected_question_ids = []
+        if selected_question_ids is None:
+            selected_question_ids = []
 
-    # add mandatory questions first
-    mandatory_marks = 0
+        # add mandatory questions first
+        mandatory_marks = 0
 
-    for qid in selected_question_ids:
+        for qid in selected_question_ids:
 
-        query = """
-        SELECT q.question_id,
-               q.question_text,
-               q.marks,
-               q.image_path,
-               qc.co_id
-        FROM questions q
-        JOIN question_co_map qc
-            ON q.question_id = qc.question_id
-        WHERE q.question_id = :qid
-        """
+            query = """
+            SELECT q.question_id,
+                   q.question_text,
+                   q.marks,
+                   q.image_path,
+                   qc.co_id
+            FROM questions q
+            JOIN question_co_map qc
+                ON q.question_id = qc.question_id
+            WHERE q.question_id = :qid
+            """
 
-        row = session.execute(
-            text(query),
-            {"qid": qid}
-        ).fetchone()
+            row = session.execute(
+                text(query),
+                {"qid": qid}
+            ).fetchone()
 
-        if row:
-            q = {
-                "id": row.question_id,
-                "question_text": row.question_text,
-                "marks": row.marks,
-                "co_id": row.co_id,
-                "image": row.image_path if row.image_path else None
-            }
+            if row:
+                q = {
+                    "id": row.question_id,
+                    "question_text": row.question_text,
+                    "marks": row.marks,
+                    "co_id": row.co_id,
+                    "image": row.image_path if row.image_path else None
+                }
 
-            final_questions.append(q)
-            used_ids.add(row.question_id)
-            mandatory_marks += row.marks
+                final_questions.append(q)
+                used_ids.add(row.question_id)
+                mandatory_marks += row.marks
 
 # we use user_id as a set because using this we can assure that there is no duplication as there are
 # same questions belonging to multiple COs
 
-    for co_id, percent in co_distribution.items():
-        required_marks = int((percent / 100) * total_marks)
+        for co_id, percent in co_distribution.items():
+            required_marks = int((percent / 100) * total_marks)
 
-        # reduce target because some marks may already be occupied
-        remaining_capacity = max(
-            0,
-            total_marks - mandatory_marks
-        )
+            # reduce target because some marks may already be occupied
+            remaining_capacity = max(
+                0,
+                total_marks - mandatory_marks
+            )
 
-        required_marks = min(required_marks, remaining_capacity)
+            required_marks = min(required_marks, remaining_capacity)
 
-        query = """
-        SELECT q.question_id, q.question_text, q.marks, q.image_path
-        FROM questions q
-        JOIN question_co_map qc ON q.question_id = qc.question_id
-        WHERE q.subject_id = :subject_id AND qc.co_id = :co_id
-        """
+            query = """
+            SELECT q.question_id, q.question_text, q.marks, q.image_path
+            FROM questions q
+            JOIN question_co_map qc ON q.question_id = qc.question_id
+            WHERE q.subject_id = :subject_id AND qc.co_id = :co_id
+            """
 
-        results = session.execute(text(query), {
-            "subject_id": subject_id,
-            "co_id": int(co_id)
-        }).fetchall()
+            results = session.execute(text(query), {
+                "subject_id": subject_id,
+                "co_id": int(co_id)
+            }).fetchall()
 
-        # Convert to dict format
-        questions = []
-        for r in results:
-            if r.question_id not in used_ids:
-                questions.append({
-                    "id": r.question_id,
-                    "question_text": r.question_text,
-                    "marks": r.marks,
-                    "co_id": int(co_id),
-                    "image": r.image_path if hasattr(r, "image_path") and r.image_path else None
-                })
+            # Convert to dict format
+            questions = []
+            for r in results:
+                if r.question_id not in used_ids:
+                    questions.append({
+                        "id": r.question_id,
+                        "question_text": r.question_text,
+                        "marks": r.marks,
+                        "co_id": int(co_id),
+                        "image": r.image_path if hasattr(r, "image_path") and r.image_path else None
+                    })
 
-        # Shuffle for randomness
-        random.shuffle(questions)
+            # Shuffle for randomness
+            random.shuffle(questions)
 
-        # Apply knapsack
-        selected = knapsack_select(questions, required_marks)
+            # Apply knapsack
+            selected = knapsack_select(questions, required_marks)
 
-        for q in selected:
-            final_questions.append(q)
-            used_ids.add(q["id"])
+            for q in selected:
+                final_questions.append(q)
+                used_ids.add(q["id"])
 
-    session.close()
-    return final_questions
+        return final_questions
+
+    except Exception as e:
+        session.rollback()
+        raise e
+
+    finally:
+        session.close()
 
 from flask import send_file
 
