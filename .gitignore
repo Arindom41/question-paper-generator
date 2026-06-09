@@ -1,15 +1,23 @@
 venv/
-__pycache__/
+.venv/
+env/
+
+pycache/
 *.pyc
 
-uploads/
-temp/
-
-generated_papers/
-
 .env
+
+uploads/
+generated_papers/
+temp/
 
 question_paper.pdf
 SCAN_question_paper_1.pdf
 
 .DS_Store
+
+.vscode/
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
