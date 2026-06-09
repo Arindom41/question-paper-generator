@@ -1,0 +1,1 @@
+web: gunicorn DP_Generate_paper:app
