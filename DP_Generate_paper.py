@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from playwright.sync_api import sync_playwright
-from db import session
+from db import get_session
 from flask import Flask, request, jsonify, render_template
 from add_question import add_question_bp
 from sqlalchemy import text
@@ -396,6 +396,7 @@ def knapsack_select(questions, max_marks):
     return selected
 
 def generate_paper(subject_id, total_marks, co_distribution, selected_question_ids=None):
+    session = get_session()
     final_questions = []
     used_ids = set()
 
@@ -485,6 +486,7 @@ def generate_paper(subject_id, total_marks, co_distribution, selected_question_i
             final_questions.append(q)
             used_ids.add(q["id"])
 
+    session.close()
     return final_questions
 
 from flask import send_file

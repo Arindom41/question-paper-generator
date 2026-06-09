@@ -11,4 +11,5 @@ engine = create_engine(
 )
 Session = sessionmaker(bind=engine)
 
-session = Session()
+def get_session():
+    return Session()
