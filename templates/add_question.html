@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Question</title>
+
+    <style>
+        body{
+            font-family: Arial, sans-serif;
+            background:#f5f5f5;
+            padding:40px;
+        }
+
+        .container{
+            max-width:800px;
+            margin:auto;
+            background:white;
+            padding:30px;
+            border-radius:10px;
+            box-shadow:0 0 10px rgba(0,0,0,0.1);
+        }
+
+        h2{
+            text-align:center;
+            margin-bottom:30px;
+        }
+
+        label{
+            display:block;
+            margin-top:15px;
+            margin-bottom:5px;
+            font-weight:bold;
+        }
+
+        input,
+        textarea,
+        select{
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:5px;
+        }
+
+        textarea{
+            min-height:150px;
+        }
+
+        button{
+            margin-top:20px;
+            width:100%;
+            padding:12px;
+            border:none;
+            border-radius:5px;
+            background:#007bff;
+            color:white;
+            font-size:16px;
+            cursor:pointer;
+        }
+
+        button:hover{
+            background:#0056b3;
+        }
+
+        .back-btn{
+            background:#6c757d;
+            margin-bottom:15px;
+        }
+
+        .back-btn:hover{
+            background:#545b62;
+        }
+    </style>
+</head>
+
+<body>
+{% if request.args.get('success') %}
+
+<script>
+
+    alert("Question Added Successfully!");
+
+</script>
+
+{% endif %}
+
+<div class="container">
+
+    <button
+        type="button"
+        class="back-btn"
+        onclick="window.location.href='/'"
+    >
+        ← Back to Home
+    </button>
+
+    <h2>Add Question</h2>
+
+    <form
+        action="/save_question"
+        method="POST"
+        enctype="multipart/form-data"
+    >
+
+        <label>Question Text</label>
+
+        <textarea
+            name="question_text"
+            placeholder="Enter question here..."
+            required
+        ></textarea>
+
+        <label>Marks</label>
+
+        <input
+            type="number"
+            name="marks"
+            required
+        >
+
+        <label>CO</label>
+
+        <select name="co_id" required>
+            <option value="">Select CO</option>
+            <option value="1">CO1</option>
+            <option value="2">CO2</option>
+            <option value="3">CO3</option>
+        </select>
+
+        <label>Subject ID</label>
+
+        <input
+            type="number"
+            name="subject_id"
+            required
+        >
+
+        <label>Question Image (Optional)</label>
+
+        <input
+            type="file"
+            name="image"
+            accept="image/*"
+        >
+
+        <button type="submit">
+            Add Question
+        </button>
+
+    </form>
+
+</div>
+
+</body>
+</html>

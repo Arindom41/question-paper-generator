@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Question Paper Generator</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 400px;
+            margin: 80px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0 15px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        .result {
+            margin-top: 20px;
+        }
+
+        .question {
+            padding: 8px;
+            margin-bottom: 10px;
+            background: #f1f1f1;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>Generate Question Paper</h2>
+
+    <!-- FORM -->
+    <form id="generateForm">
+        <label>Subject ID</label>
+        <input type="number" name="subject_id" required>
+
+        <label>Total Marks</label>
+        <input type="number" name="total_marks" required>
+
+        <label>CO1 (%)</label>
+        <input type="number" name="co1" required>
+
+        <label>CO2 (%)</label>
+        <input type="number" name="co2" required>
+
+        <label>CO3 (%)</label>
+        <input type="number" name="co3" required>
+
+        <label>Mandatory Question IDs</label>
+        <input
+            type="text"
+            id="selectedQuestions"
+            placeholder="Example: 5,12,18"
+        >
+
+        <small style="display:block; margin-bottom:15px; color:#666;">
+            Enter question IDs separated by commas.
+            These questions will definitely appear in the generated paper.
+        </small>
+
+        <button type="submit" id="generateBtn">Generate Question Paper</button>
+
+        <button
+            type="button"
+            id="scanBtn"
+            style="margin-top:10px; background:#28a745;"
+        >
+            Scan Checked Paper
+        </button>
+
+        <button
+            type="button"
+            onclick="window.location.href='/add_question'"
+            style="margin-top:10px; background:#6c757d;"
+        >
+            Add Question
+        </button>
+    </form>
+
+    <!-- RESULT SECTION -->
+    <div class="result" id="result"></div>
+</div>
+
+<!-- SUCCESS POPUP -->
+<div id="popup" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
+    <div style="background:white; padding:20px; border-radius:8px; text-align:center;">
+        <p>Question Paper Generated Successfully!</p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+</div>
+
+<!-- JS FILE (Flask way) -->
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
