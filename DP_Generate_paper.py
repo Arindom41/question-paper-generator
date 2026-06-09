@@ -2,6 +2,10 @@ import random
 import re
 import uuid
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from playwright.sync_api import sync_playwright
 from db import session
 from flask import Flask, request, jsonify, render_template
