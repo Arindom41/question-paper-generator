@@ -8,6 +8,7 @@ engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300
+    poolclass=NullPool
 )
 Session = sessionmaker(bind=engine)
 
