@@ -1,5 +1,15 @@
+venv/
 __pycache__/
 *.pyc
-venv/
+
+uploads/
 temp/
-playwright
+
+generated_papers/
+
+.env
+
+question_paper.pdf
+SCAN_question_paper_1.pdf
+
+.DS_Store
