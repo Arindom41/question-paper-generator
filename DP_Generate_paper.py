@@ -156,6 +156,7 @@ body {{
             print("Chromium executable:", p.chromium.executable_path)
 
             browser = p.chromium.launch(
+                channel="chromium",
                 headless=True,
                 args=[
                     "--no-sandbox",
