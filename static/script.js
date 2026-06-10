@@ -15,6 +15,22 @@ document.getElementById("generateForm").addEventListener("submit", async functio
         .filter(id => id !== '')
         .map(Number);
 
+    const customQuestions = [];
+
+    document.querySelectorAll('.custom-question').forEach(row => {
+        const questionText = row.querySelector('.custom-question-text')?.value.trim();
+        const coId = row.querySelector('.custom-question-co')?.value;
+        const marks = row.querySelector('.custom-question-marks')?.value;
+
+        if (questionText) {
+            customQuestions.push({
+                question_text: questionText,
+                co_id: parseInt(coId || 1, 10),
+                marks: parseInt(marks || 0, 10)
+            });
+        }
+    });
+
     const data = {
         subject_id: parseInt(subject_id, 10),
         total_marks: parseInt(total_marks, 10),
@@ -23,7 +39,8 @@ document.getElementById("generateForm").addEventListener("submit", async functio
             "2": parseInt(co2, 10),
             "3": parseInt(co3, 10)
         },
-        selected_question_ids: selectedQuestions
+        selected_question_ids: selectedQuestions,
+        custom_questions: customQuestions
     };
 
     try {

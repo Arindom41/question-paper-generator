@@ -110,6 +110,28 @@ window.MathJax = {
             These questions will definitely appear in the generated paper.
         </small>
 
+        <label>Custom Questions (Temporary - Not Stored in Database)</label>
+
+        <div id="customQuestionsContainer">
+            <div class="custom-question" style="border:1px solid #ddd; padding:10px; margin-bottom:10px; border-radius:5px;">
+                <input type="text" class="custom-question-text" placeholder="Question Text">
+                <input type="number" class="custom-question-co" placeholder="CO Number">
+                <input type="number" class="custom-question-marks" placeholder="Marks">
+            </div>
+        </div>
+
+        <button
+            type="button"
+            id="addCustomQuestionBtn"
+            style="margin-bottom:15px; background:#17a2b8;"
+        >
+            + Add Custom Question
+        </button>
+
+        <small style="display:block; margin-bottom:15px; color:#666;">
+            Custom questions will appear in the generated paper but will not be saved in the database.
+        </small>
+
         <button type="submit" id="generateBtn">Generate Question Paper</button>
 
         <button
@@ -151,6 +173,27 @@ setTimeout(() => {
         MathJax.typesetPromise();
     }
 }, 500);
+</script>
+
+<script>
+document.getElementById('addCustomQuestionBtn').addEventListener('click', function() {
+    const container = document.getElementById('customQuestionsContainer');
+
+    const div = document.createElement('div');
+    div.className = 'custom-question';
+    div.style.border = '1px solid #ddd';
+    div.style.padding = '10px';
+    div.style.marginBottom = '10px';
+    div.style.borderRadius = '5px';
+
+    div.innerHTML = `
+        <input type="text" class="custom-question-text" placeholder="Question Text">
+        <input type="number" class="custom-question-co" placeholder="CO Number">
+        <input type="number" class="custom-question-marks" placeholder="Marks">
+    `;
+
+    container.appendChild(div);
+});
 </script>
 </body>
 </html>

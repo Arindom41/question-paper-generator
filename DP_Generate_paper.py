@@ -409,7 +409,7 @@ def knapsack_select(questions, max_marks):
 
     return selected
 
-def generate_paper(subject_id, total_marks, co_distribution, selected_question_ids=None):
+def generate_paper(subject_id, total_marks, co_distribution, selected_question_ids=None, custom_questions=None):
     session = get_session()
     try:
         final_questions = []
@@ -418,8 +418,13 @@ def generate_paper(subject_id, total_marks, co_distribution, selected_question_i
         if selected_question_ids is None:
             selected_question_ids = []
 
+        if custom_questions is None:
+            custom_questions = []
+
         # add mandatory questions first
         mandatory_marks = 0
+        # Track marks already supplied by mandatory/custom questions per CO
+        co_existing_marks = {}
 
         for qid in selected_question_ids:
 
@@ -452,12 +457,37 @@ def generate_paper(subject_id, total_marks, co_distribution, selected_question_i
                 final_questions.append(q)
                 used_ids.add(row.question_id)
                 mandatory_marks += row.marks
+                co_existing_marks[row.co_id] = (
+                    co_existing_marks.get(row.co_id, 0) + row.marks
+                )
+
+# add custom questions (not stored in DB)
+        for cq in custom_questions:
+            q = {
+                "id": f"custom_{len(final_questions)+1}",
+                "question_text": cq.get("question_text", ""),
+                "marks": int(cq.get("marks", 0)),
+                "co_id": int(cq.get("co_id", 1)),
+                "image": None
+            }
+
+            final_questions.append(q)
+            mandatory_marks += q["marks"]
+            co_existing_marks[q["co_id"]] = (
+                co_existing_marks.get(q["co_id"], 0) + q["marks"]
+            )
 
 # we use user_id as a set because using this we can assure that there is no duplication as there are
 # same questions belonging to multiple COs
 
         for co_id, percent in co_distribution.items():
             required_marks = int((percent / 100) * total_marks)
+
+            # Reduce marks already covered by mandatory/custom questions
+            required_marks = max(
+                0,
+                required_marks - co_existing_marks.get(int(co_id), 0)
+            )
 
             # reduce target because some marks may already be occupied
             remaining_capacity = max(
@@ -525,11 +555,17 @@ def generate():
         []
     )
 
+    custom_questions = data.get(
+        "custom_questions",
+        []
+    )
+
     questions = generate_paper(
         subject_id,
         total_marks,
         co_distribution,
-        selected_question_ids
+        selected_question_ids,
+        custom_questions
     )
 
     pdf_path = generate_pdf(questions, subject_id, total_marks)
