@@ -1,199 +1,736 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Question Paper Generator</title>
 
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$']]
+            }
+        };
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
     <style>
+        :root {
+            color-scheme: light;
+            --ink: #172033;
+            --muted: #667085;
+            --line: #d8dee8;
+            --surface: #ffffff;
+            --surface-soft: #f7f9fc;
+            --navy: #17345f;
+            --teal: #087e8b;
+            --green: #227c55;
+            --amber: #b7791f;
+            --red: #b42318;
+            --shadow: 0 18px 45px rgba(20, 32, 52, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
+            min-height: 100vh;
             margin: 0;
-            padding: 0;
+            color: var(--ink);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background:
+                linear-gradient(120deg, rgba(8, 126, 139, 0.14), transparent 34%),
+                linear-gradient(240deg, rgba(183, 121, 31, 0.14), transparent 30%),
+                #eef3f8;
         }
 
-        .container {
-            width: 400px;
-            margin: 80px auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
-        }
-
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        input {
-            width: 100%;
-            padding: 8px;
-            margin: 8px 0 15px 0;
-            border-radius: 5px;
-            border: 1px solid #ccc;
+        button,
+        input,
+        textarea,
+        select {
+            font: inherit;
         }
 
         button {
-            width: 100%;
-            padding: 10px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
+            border: 0;
         }
 
-        button:hover {
-            background: #0056b3;
+        .page-shell {
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0 44px;
+        }
+
+        .app-header {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 18px;
+            align-items: center;
+            margin-bottom: 22px;
+            padding: 22px;
+            color: #fff;
+            background: linear-gradient(135deg, #17345f, #087e8b 64%, #227c55);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .eyebrow {
+            margin: 0 0 6px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.78);
+        }
+
+        h1,
+        h2,
+        h3,
+        p {
+            margin-top: 0;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1;
+            letter-spacing: 0;
+        }
+
+        .header-copy {
+            max-width: 680px;
+            margin-bottom: 0;
+            color: rgba(255, 255, 255, 0.86);
+        }
+
+        .auth-status {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 36px;
+            padding: 8px 12px;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .layout-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 340px;
+            gap: 18px;
+            align-items: start;
+        }
+
+        .workspace,
+        .side-panel,
+        .auth-panel,
+        .popup-card {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(216, 222, 232, 0.9);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .workspace {
+            overflow: hidden;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            padding: 18px;
+        }
+
+        .block {
+            min-width: 0;
+            padding: 18px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        .block-wide {
+            grid-column: 1 / -1;
+        }
+
+        .block-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .block-title h2,
+        .block-title h3 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 0;
+        }
+
+        .block-note {
+            margin: 0 0 14px;
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .field {
+            display: grid;
+            gap: 7px;
         }
 
         label {
-            font-weight: bold;
+            color: #344054;
+            font-size: 0.86rem;
+            font-weight: 800;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            min-height: 44px;
+            padding: 11px 12px;
+            color: var(--ink);
+            background: #fff;
+            border: 1px solid #cdd5df;
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 160ms ease, box-shadow 160ms ease;
+        }
+
+        textarea {
+            min-height: 96px;
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: var(--teal);
+            box-shadow: 0 0 0 4px rgba(8, 126, 139, 0.14);
+        }
+
+        .co-grid,
+        .custom-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .custom-question {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 120px 120px 42px;
+            gap: 10px;
+            align-items: end;
+            padding: 12px;
+            margin-top: 10px;
+            background: var(--surface-soft);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        .side-panel {
+            position: sticky;
+            top: 18px;
+            padding: 18px;
+        }
+
+        .summary-list {
+            display: grid;
+            gap: 12px;
+            margin: 0 0 18px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .summary-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .summary-list strong {
+            color: var(--ink);
+        }
+
+        .actions {
+            display: grid;
+            gap: 10px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 44px;
+            padding: 11px 14px;
+            border-radius: 6px;
+            color: #fff;
+            background: var(--navy);
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 160ms ease, filter 160ms ease;
+        }
+
+        .btn:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.65;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--navy), var(--teal));
+        }
+
+        .btn-secondary {
+            color: var(--navy);
+            background: #e9f2f7;
+        }
+
+        .btn-success {
+            background: var(--green);
+        }
+
+        .btn-warning {
+            background: var(--amber);
+        }
+
+        .btn-danger {
+            width: 42px;
+            min-height: 42px;
+            padding: 0;
+            background: #fee4e2;
+            color: var(--red);
+            font-size: 1.2rem;
         }
 
         .result {
-            margin-top: 20px;
+            min-height: 46px;
+            margin-top: 16px;
+            padding: 12px;
+            color: var(--muted);
+            background: var(--surface-soft);
+            border: 1px dashed #cdd5df;
+            border-radius: 8px;
+            line-height: 1.45;
         }
 
-        .question {
-            padding: 8px;
+        .result.success {
+            color: #14532d;
+            background: #ecfdf3;
+            border-color: #86efac;
+        }
+
+        .result.error {
+            color: var(--red);
+            background: #fff1f0;
+            border-color: #fda29b;
+        }
+
+        .scan-form {
+            display: grid;
+            gap: 10px;
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px solid var(--line);
+        }
+
+        .auth-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background:
+                linear-gradient(120deg, rgba(23, 52, 95, 0.82), rgba(8, 126, 139, 0.72)),
+                rgba(16, 24, 40, 0.42);
+            backdrop-filter: blur(12px);
+        }
+
+        .auth-screen.is-hidden {
+            display: none;
+        }
+
+        .auth-panel {
+            width: min(430px, 100%);
+            padding: 26px;
+        }
+
+        .auth-panel h2 {
+            margin-bottom: 8px;
+            font-size: 1.65rem;
+        }
+
+        .auth-actions {
+            display: grid;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .error-text {
+            min-height: 20px;
+            margin: 10px 0 0;
+            color: var(--red);
+            font-weight: 700;
+        }
+
+        .popup {
+            position: fixed;
+            inset: 0;
+            z-index: 30;
+            display: none;
+            place-items: center;
+            padding: 18px;
+            background: rgba(16, 24, 40, 0.48);
+        }
+
+        .popup.is-open {
+            display: grid;
+        }
+
+        .popup-card {
+            width: min(420px, 100%);
+            padding: 24px;
+            text-align: center;
+        }
+
+        .popup-card h2 {
+            margin-bottom: 8px;
+        }
+
+        .info-card {
+            width: min(780px, 100%);
+            max-height: min(760px, calc(100vh - 36px));
+            overflow: hidden;
+            padding: 0;
+            text-align: left;
+        }
+
+        .info-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 18px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--navy), var(--teal));
+        }
+
+        .info-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .info-body {
+            max-height: calc(100vh - 150px);
+            overflow: auto;
+            padding: 18px;
+        }
+
+        .subject-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .subject-item {
+            padding: 14px;
+            background: var(--surface-soft);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        .subject-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
             margin-bottom: 10px;
-            background: #f1f1f1;
-            border-radius: 5px;
         }
-</style>
 
-<script>
-window.MathJax = {
-    tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$']]
-    }
-};
-</script>
+        .subject-meta h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
 
-<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+        .co-list {
+            display: grid;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .co-list li {
+            display: grid;
+            grid-template-columns: 72px minmax(0, 1fr);
+            gap: 10px;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .co-list strong {
+            color: var(--teal);
+        }
+
+        .helper {
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.45;
+        }
+
+        @media (max-width: 900px) {
+            .app-header,
+            .layout-grid,
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .side-panel {
+                position: static;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page-shell {
+                width: min(100% - 20px, 1180px);
+                padding-top: 10px;
+            }
+
+            .field-grid,
+            .co-grid,
+            .custom-question {
+                grid-template-columns: 1fr;
+            }
+
+            .auth-status {
+                justify-content: flex-start;
+            }
+        }
+    </style>
 </head>
 
 <body>
+    <div id="authScreen" class="auth-screen">
+        <section class="auth-panel" aria-labelledby="authTitle">
+            <p class="eyebrow" style="color:#087e8b;">Authorized access</p>
+            <h2 id="authTitle">Sign in to continue</h2>
+            <p class="block-note">Use your authorized username and access code before generating, scanning, or adding question data.</p>
 
-<div class="container">
-    <h2>Generate Question Paper</h2>
+            <form id="authForm">
+                <div class="field">
+                    <label for="teacherId">Username</label>
+                    <input id="teacherId" name="username" type="text" autocomplete="username" placeholder="Enter username" required>
+                </div>
 
-    <!-- FORM -->
-    <form id="generateForm">
-        <label>Subject ID</label>
-        <input type="number" name="subject_id" required>
+                <div class="field" style="margin-top:12px;">
+                    <label for="accessCode">Access Code</label>
+                    <input id="accessCode" name="access_code" type="password" autocomplete="current-password" placeholder="Enter access code" required>
+                    <span class="helper">The code is verified against the database.</span>
+                </div>
 
-        <label>Total Marks</label>
-        <input type="number" name="total_marks" required>
+                <p id="authError" class="error-text" role="alert"></p>
 
-        <label>CO1 (%)</label>
-        <input type="number" name="co1" required>
-
-        <label>CO2 (%)</label>
-        <input type="number" name="co2" required>
-
-        <label>CO3 (%)</label>
-        <input type="number" name="co3" required>
-
-        <label>Mandatory Question IDs</label>
-        <input
-            type="text"
-            id="selectedQuestions"
-            placeholder="Example: 5,12,18"
-        >
-
-        <small style="display:block; margin-bottom:15px; color:#666;">
-            Enter question IDs separated by commas.
-            These questions will definitely appear in the generated paper.
-        </small>
-
-        <label>Custom Questions (Temporary - Not Stored in Database)</label>
-
-        <div id="customQuestionsContainer">
-            <div class="custom-question" style="border:1px solid #ddd; padding:10px; margin-bottom:10px; border-radius:5px;">
-                <input type="text" class="custom-question-text" placeholder="Question Text">
-                <input type="number" class="custom-question-co" placeholder="CO Number">
-                <input type="number" class="custom-question-marks" placeholder="Marks">
-            </div>
-        </div>
-
-        <button
-            type="button"
-            id="addCustomQuestionBtn"
-            style="margin-bottom:15px; background:#17a2b8;"
-        >
-            + Add Custom Question
-        </button>
-
-        <small style="display:block; margin-bottom:15px; color:#666;">
-            Custom questions will appear in the generated paper but will not be saved in the database.
-        </small>
-
-        <button type="submit" id="generateBtn">Generate Question Paper</button>
-
-        <button
-            type="button"
-            id="scanBtn"
-            style="margin-top:10px; background:#28a745;"
-        >
-            Scan Checked Paper
-        </button>
-
-        <button
-            type="button"
-            onclick="window.location.href='/add_question'"
-            style="margin-top:10px; background:#6c757d;"
-        >
-            Add Question
-        </button>
-    </form>
-
-    <!-- RESULT SECTION -->
-    <div class="result" id="result"></div>
-</div>
-
-<!-- SUCCESS POPUP -->
-<div id="popup" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
-    <div style="background:white; padding:20px; border-radius:8px; text-align:center;">
-        <p>Question Paper Generated Successfully!</p>
-        <button onclick="closePopup()">OK</button>
+                <div class="auth-actions">
+                    <button class="btn btn-primary" type="submit">Authorize</button>
+                </div>
+            </form>
+        </section>
     </div>
-</div>
 
-</body>
-<!-- JS FILE (Flask way) -->
-<script src="{{ url_for('static', filename='script.js') }}"></script>
+    <main class="page-shell">
+        <header class="app-header">
+            <div>
+                <p class="eyebrow">Assam Engineering College</p>
+                <h1>Question Paper Generator</h1>
+                <p class="header-copy">Generate balanced question papers with CO distribution, mandatory database questions, temporary custom questions, and scan support from one dashboard.</p>
+            </div>
 
-<script>
-setTimeout(() => {
-    if (window.MathJax) {
-        MathJax.typesetPromise();
-    }
-}, 500);
-</script>
+            <div class="auth-status">
+                <span id="userStatus" class="status-pill">Locked</span>
+                <button id="logoutBtn" class="btn btn-secondary" type="button">Logout</button>
+            </div>
+        </header>
 
-<script>
-document.getElementById('addCustomQuestionBtn').addEventListener('click', function() {
-    const container = document.getElementById('customQuestionsContainer');
+        <div class="layout-grid">
+            <section class="workspace" aria-label="Question paper workspace">
+                <form id="generateForm">
+                    <div class="form-grid">
+                        <section class="block">
+                            <div class="block-title">
+                                <h2>Paper Setup</h2>
+                            </div>
 
-    const div = document.createElement('div');
-    div.className = 'custom-question';
-    div.style.border = '1px solid #ddd';
-    div.style.padding = '10px';
-    div.style.marginBottom = '10px';
-    div.style.borderRadius = '5px';
+                            <div class="field-grid">
+                                <div class="field">
+                                    <label for="subjectId">Subject ID</label>
+                                    <input id="subjectId" type="number" name="subject_id" min="1" placeholder="1" required>
+                                </div>
 
-    div.innerHTML = `
-        <input type="text" class="custom-question-text" placeholder="Question Text">
-        <input type="number" class="custom-question-co" placeholder="CO Number">
-        <input type="number" class="custom-question-marks" placeholder="Marks">
-    `;
+                                <div class="field">
+                                    <label for="totalMarks">Total Marks</label>
+                                    <input id="totalMarks" type="number" name="total_marks" min="1" placeholder="60" required>
+                                </div>
+                            </div>
+                        </section>
 
-    container.appendChild(div);
-});
-</script>
+                        <section class="block">
+                            <div class="block-title">
+                                <h2>CO Distribution</h2>
+                                <span id="coTotal" class="status-pill" style="color:#17345f;background:#e9f2f7;border-color:#c8dce8;">0%</span>
+                            </div>
+
+                            <div class="co-grid">
+                                <div class="field">
+                                    <label for="co1">CO1 (%)</label>
+                                    <input id="co1" type="number" name="co1" min="0" max="100" placeholder="40" required>
+                                </div>
+
+                                <div class="field">
+                                    <label for="co2">CO2 (%)</label>
+                                    <input id="co2" type="number" name="co2" min="0" max="100" placeholder="30" required>
+                                </div>
+
+                                <div class="field">
+                                    <label for="co3">CO3 (%)</label>
+                                    <input id="co3" type="number" name="co3" min="0" max="100" placeholder="30" required>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="block block-wide">
+                            <div class="block-title">
+                                <h2>Mandatory Questions</h2>
+                            </div>
+                            <p class="block-note">Add database question IDs that must appear in the generated paper. Separate multiple IDs with commas.</p>
+
+                            <div class="field">
+                                <label for="selectedQuestions">Question IDs</label>
+                                <input id="selectedQuestions" type="text" placeholder="Example: 5, 12, 18">
+                            </div>
+                        </section>
+
+                        <section class="block block-wide">
+                            <div class="block-title">
+                                <h2>Custom Questions</h2>
+                                <button class="btn btn-secondary" type="button" id="addCustomQuestionBtn">Add Row</button>
+                            </div>
+                            <p class="block-note">Temporary questions are included in the PDF but are not saved in the database.</p>
+
+                            <div id="customQuestionsContainer">
+                                <div class="custom-question">
+                                    <div class="field">
+                                        <label>Question Text</label>
+                                        <textarea class="custom-question-text" placeholder="Write the temporary question"></textarea>
+                                    </div>
+
+                                    <div class="field">
+                                        <label>CO</label>
+                                        <input type="number" class="custom-question-co" min="1" max="3" placeholder="1">
+                                    </div>
+
+                                    <div class="field">
+                                        <label>Marks</label>
+                                        <input type="number" class="custom-question-marks" min="0" placeholder="5">
+                                    </div>
+
+                                    <button class="btn btn-danger remove-custom-question" type="button" title="Remove row" aria-label="Remove custom question">x</button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </form>
+            </section>
+
+            <aside class="side-panel" aria-label="Actions and status">
+                <div class="block-title">
+                    <h2>Control Panel</h2>
+                </div>
+
+                <ul class="summary-list">
+                    <li><span>Authorization</span><strong id="summaryAuth">Locked</strong></li>
+                    <li><span>CO total</span><strong id="summaryCo">0%</strong></li>
+                    <li><span>Custom rows</span><strong id="summaryCustom">1</strong></li>
+                    <li><span>Mandatory IDs</span><strong id="summaryMandatory">0</strong></li>
+                </ul>
+
+                <div class="actions">
+                    <button type="submit" form="generateForm" id="generateBtn" class="btn btn-primary">Generate PDF</button>
+                    <button type="button" id="infoBtn" class="btn btn-secondary">Subject Info</button>
+                    <button type="button" id="addQuestionBtn" class="btn btn-warning">Add Question</button>
+                </div>
+
+                <form id="scanForm" class="scan-form" enctype="multipart/form-data">
+                    <div class="field">
+                        <label for="scanFile">Scan Checked Paper</label>
+                        <input id="scanFile" type="file" name="file" accept="image/*,.pdf">
+                    </div>
+                    <button type="submit" id="scanBtn" class="btn btn-success">Upload Scan</button>
+                </form>
+
+                <div class="result" id="result">Ready after authorization.</div>
+            </aside>
+        </div>
+    </main>
+
+    <div id="popup" class="popup" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
+        <section class="popup-card">
+            <h2 id="popupTitle">Question Paper Generated</h2>
+            <p class="block-note">The PDF download has started successfully.</p>
+            <button class="btn btn-primary" type="button" onclick="closePopup()">OK</button>
+        </section>
+    </div>
+
+    <div id="infoModal" class="popup" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+        <section class="popup-card info-card">
+            <div class="info-header">
+                <h2 id="infoTitle">Subject & CO Reference</h2>
+                <button class="btn btn-secondary" type="button" id="closeInfoBtn">Close</button>
+            </div>
+            <div class="info-body">
+                <div id="subjectInfoContent" class="result">Loading subject information...</div>
+            </div>
+        </section>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        setTimeout(() => {
+            if (window.MathJax) {
+                MathJax.typesetPromise();
+            }
+        }, 500);
+    </script>
 </body>
 </html>

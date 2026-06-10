@@ -2,15 +2,17 @@ import random
 import re
 import uuid
 import os
+from functools import wraps
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from playwright.sync_api import sync_playwright
 from db import get_session
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, session as flask_session
 from add_question import add_question_bp
 from sqlalchemy import text
+from werkzeug.security import check_password_hash, generate_password_hash
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage, Flowable, KeepInFrame
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
@@ -371,11 +373,209 @@ def generate_pdf(questions, subject_id, total_marks):
     return "question_paper.pdf"
 
 app = Flask(__name__)
+app.secret_key = os.getenv(
+    "SECRET_KEY",
+    "question-paper-generator-dev-secret"
+)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax"
+)
 app.register_blueprint(add_question_bp)
+
+
+def init_auth_table():
+    session = get_session()
+    try:
+        session.execute(text("""
+            CREATE TABLE IF NOT EXISTS authorized_users (
+                user_id SERIAL PRIMARY KEY,
+                username VARCHAR(80) UNIQUE NOT NULL,
+                access_code_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def upsert_auth_user(username, access_code):
+    session = get_session()
+    try:
+        session.execute(
+            text("""
+                INSERT INTO authorized_users (
+                    username,
+                    access_code_hash
+                )
+                VALUES (
+                    :username,
+                    :access_code_hash
+                )
+                ON CONFLICT (username)
+                DO UPDATE SET
+                    access_code_hash = EXCLUDED.access_code_hash
+            """),
+            {
+                "username": username,
+                "access_code_hash": generate_password_hash(access_code)
+            }
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def current_user():
+    return flask_session.get("auth_user")
+
+
+def auth_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        if current_user():
+            return view(*args, **kwargs)
+
+        if request.accept_mimetypes.accept_html and not request.is_json:
+            return redirect("/")
+
+        return jsonify({
+            "status": "error",
+            "message": "Authorization required"
+        }), 401
+
+    return wrapped_view
+
+
+@app.before_request
+def require_auth_for_question_admin():
+    protected_endpoints = {
+        "add_question.add_question_page",
+        "add_question.save_question"
+    }
+
+    if request.endpoint in protected_endpoints and not current_user():
+        return redirect("/")
+
+
+try:
+    init_auth_table()
+except Exception as e:
+    print("AUTH TABLE INIT ERROR:", e)
+
 
 @app.route("/")
 def home():
     return render_template("frontend.html")
+
+
+@app.route("/auth/status")
+def auth_status():
+    user = current_user()
+
+    return jsonify({
+        "authorized": bool(user),
+        "username": user
+    })
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.get_json() or {}
+    username = (data.get("username") or "").strip()
+    access_code = data.get("access_code") or ""
+
+    if not username or not access_code:
+        return jsonify({
+            "status": "error",
+            "message": "Username and access code are required"
+        }), 400
+
+    session = get_session()
+    try:
+        row = session.execute(
+            text("""
+                SELECT username, access_code_hash
+                FROM authorized_users
+                WHERE username = :username
+            """),
+            {"username": username}
+        ).fetchone()
+    finally:
+        session.close()
+
+    if not row or not check_password_hash(row.access_code_hash, access_code):
+        flask_session.clear()
+        return jsonify({
+            "status": "error",
+            "message": "Invalid username or access code"
+        }), 401
+
+    flask_session["auth_user"] = row.username
+
+    return jsonify({
+        "status": "success",
+        "username": row.username
+    })
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    flask_session.clear()
+
+    return jsonify({
+        "status": "success"
+    })
+
+
+@app.route("/subjects-info")
+@auth_required
+def subjects_info():
+    db_session = get_session()
+    try:
+        rows = db_session.execute(text("""
+            SELECT
+                s.subject_id,
+                s.subject_name,
+                s.semester,
+                co.co_code,
+                co.description
+            FROM subjects s
+            LEFT JOIN course_outcomes co
+                ON co.subject_id = s.subject_id
+            ORDER BY
+                s.subject_id,
+                co.co_id
+        """)).fetchall()
+    finally:
+        db_session.close()
+
+    subjects = {}
+
+    for row in rows:
+        subject = subjects.setdefault(row.subject_id, {
+            "subject_id": row.subject_id,
+            "subject_name": row.subject_name,
+            "semester": row.semester,
+            "course_outcomes": []
+        })
+
+        if row.co_code:
+            subject["course_outcomes"].append({
+                "co_code": row.co_code,
+                "description": row.description
+            })
+
+    return jsonify({
+        "subjects": list(subjects.values())
+    })
 
 def knapsack_select(questions, max_marks):
 
@@ -543,6 +743,7 @@ def generate_paper(subject_id, total_marks, co_distribution, selected_question_i
 from flask import send_file
 
 @app.route("/generate", methods=["POST"])
+@auth_required
 def generate():
     data = request.get_json()
 
@@ -573,6 +774,7 @@ def generate():
     return send_file(pdf_path, as_attachment=True)
 
 @app.route("/scan", methods=["POST"])
+@auth_required
 def scan():
 
     file = request.files["file"]
