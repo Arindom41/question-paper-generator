@@ -21,3 +21,12 @@ SCAN_question_paper_1.pdf
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Generated PDFs
+*.pdf
+
+# Generated question papers
+generated_papers/
+
+# PDF uploads (if any)
+uploads/*.pdf
