@@ -150,9 +150,22 @@ body {{
         with open(html_file, "w", encoding="utf-8") as f:
             f.write(html)
 
+        print("PLAYWRIGHT_BROWSERS_PATH =", os.getenv("PLAYWRIGHT_BROWSERS_PATH"))
+
         with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page(viewport={"width":800,"height":200})
+            print("Chromium executable:", p.chromium.executable_path)
+
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage"
+                ]
+            )
+
+            page = browser.new_page(
+                viewport={"width": 800, "height": 200}
+            )
             page.goto("file://" + os.path.abspath(html_file))
             page.wait_for_timeout(1000)
             page.locator("#formula").screenshot(
